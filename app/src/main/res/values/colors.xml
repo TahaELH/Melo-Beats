@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="red">#BC0000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="nofile">#54FFFFFF</color>
+    <color name="playlist">#FFFFFF</color>
+    <color name="playlist_20">#33FFFFFF</color>
+    <color name="album">#FFFFFF</color>
+    <color name="album_20">#33FFFFFF</color>
+    <color name="track">#FFFFFF</color>
+    <color name="track_20">#33FFFFFF</color>
+    <color name="artist">#FFFFFF</color>
+    <color name="artist_20">#33FFFFFF</color>
+    <color name="body_all">#000000</color>
+    <color name="current_Track">#FF33373B</color>
+    <color name="list_item_background_color_1">#A6000000</color>
+    <color name="list_item_background_color_2">@android:color/transparent</color>
+</resources>

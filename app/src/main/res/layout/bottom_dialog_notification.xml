@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingHorizontal="10dp"
+    android:paddingVertical="10dp"
+    android:background="#1C1C1C"
+    android:paddingBottom="100dp">
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="20dp"/>
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/white"
+        android:fontFamily="@font/coda"
+        android:textStyle="bold"
+        android:textSize="18dp"
+        android:text="Notification Disabled !"/>
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="20dp"/>
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="12dp"
+        android:text="Notifications for this app are disabled. Please enable notifications in the system settings."
+        android:fontFamily="@font/quicksand"/>
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="25dp"/>
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/confirm"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/white"
+        android:text="Open Settings"
+        android:background="@drawable/confirm_button"
+        android:fontFamily="@font/coda"
+        android:textSize="10dp" />
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="10dp"/>
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/cancel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Cancel"
+        android:textColor="@color/white"
+        android:background="@drawable/cancel_button"
+        android:fontFamily="@font/coda"
+        android:textSize="10dp"/>
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="30dp"/>
+
+</LinearLayout>

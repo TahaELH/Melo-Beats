@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingHorizontal="10dp"
+    android:paddingVertical="10dp"
+    android:background="#1C1C1C"
+    android:paddingBottom="100dp">
+    <Space
+        android:layout_width="match_parent"
+        android:layout_height="20dp"/>
+    <TextView
+        android:id="@+id/trackNameDetail"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="@color/white"
+        android:fontFamily="@font/coda"
+        android:textStyle="bold"
+        android:textSize="18dp"
+        android:ellipsize="end"
+        android:singleLine="true"
+        android:gravity="center"
+        android:text="here"/>
+
+    <Space
+    android:layout_width="match_parent"
+    android:layout_height="30dp"/>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="150dp"
+        android:orientation="vertical">
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="2"
+            android:orientation="horizontal"
+            android:gravity="center">
+            <ImageView
+                android:layout_width="15dp"
+                android:layout_height="15dp"
+                android:adjustViewBounds="true"
+                android:background="@drawable/playlist_add" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/white"
+                android:fontFamily="@font/quicksand"
+                android:gravity="center"
+                android:layout_marginStart="20dp"
+                android:textSize="8dp"
+                android:text="Add To Playlist"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/red"
+                android:fontFamily="@font/quicksand"
+                android:gravity="center"
+                android:layout_marginStart="20dp"
+                android:textSize="8dp"
+                android:text="Not working!"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="2"
+            android:orientation="horizontal"
+            android:gravity="center">
+            <ImageView
+                android:layout_width="15dp"
+                android:layout_height="15dp"
+                android:adjustViewBounds="true"
+                android:background="@drawable/share" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/white"
+                android:fontFamily="@font/quicksand"
+                android:gravity="center"
+                android:layout_marginStart="20dp"
+                android:textSize="8dp"
+                android:text="Share"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/red"
+                android:fontFamily="@font/quicksand"
+                android:gravity="center"
+                android:layout_marginStart="20dp"
+                android:textSize="8dp"
+                android:text="Not working!"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="2"
+            android:orientation="horizontal"
+            android:gravity="center">
+            <ImageView
+                android:layout_width="15dp"
+                android:layout_height="15dp"
+                android:adjustViewBounds="true"
+                android:background="@drawable/delete_track" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/white"
+                android:fontFamily="@font/quicksand"
+                android:gravity="center"
+                android:layout_marginStart="20dp"
+                android:textSize="8dp"
+                android:text="Delete"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/red"
+                android:fontFamily="@font/quicksand"
+                android:gravity="center"
+                android:layout_marginStart="20dp"
+                android:textSize="8dp"
+                android:text="Not working!"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            android:layout_weight="2"
+            android:orientation="horizontal"
+            android:gravity="center">
+            <ImageView
+                android:layout_width="15dp"
+                android:layout_height="15dp"
+                android:adjustViewBounds="true"
+                android:background="@drawable/info_track" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/white"
+                android:fontFamily="@font/quicksand"
+                android:gravity="center"
+                android:layout_marginStart="20dp"
+                android:textSize="8dp"
+                android:text="Info"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/red"
+                android:fontFamily="@font/quicksand"
+                android:gravity="center"
+                android:layout_marginStart="20dp"
+                android:textSize="8dp"
+                android:text="Not working!"/>
+        </LinearLayout>
+    </LinearLayout>
+
+    <Space
+    android:layout_width="match_parent"
+    android:layout_height="30dp"/>
+
+</LinearLayout>

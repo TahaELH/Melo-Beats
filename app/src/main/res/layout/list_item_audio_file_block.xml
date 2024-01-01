@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="210dp"
+    android:layout_margin="5dp">
+
+    <LinearLayout
+        android:id="@+id/item_background"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="3dp"
+        android:layout_marginBottom="3dp"
+        android:elevation="20dp"
+        android:gravity="center_vertical"
+        android:orientation="vertical"
+        android:paddingStart="5dp"
+        android:paddingTop="5dp"
+        android:paddingEnd="5dp"
+        android:paddingBottom="5dp"
+        tools:targetApi="lollipop">
+
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/imagetrackH"
+            android:layout_width="140.8dp"
+            android:layout_height="110dp"
+            android:scaleType="fitCenter"
+            app:shapeAppearanceOverlay="@style/roundedImageStyleBlock"
+            app:srcCompat="@drawable/track_img" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="55dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="15dp"
+            android:layout_weight="1"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:weightSum="2">
+
+            <TextView
+                android:id="@+id/titleTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/quicksand"
+                android:text="Name of track"
+                android:textColor="@color/white"
+                android:textSize="10dp" />
+
+            <TextView
+                android:id="@+id/artistTextView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/quicksand"
+                android:text="Artist of track"
+                android:textColor="@color/playlist_20"
+                android:textSize="8dp" />
+        </LinearLayout>
+
+    </LinearLayout>
+</RelativeLayout>
