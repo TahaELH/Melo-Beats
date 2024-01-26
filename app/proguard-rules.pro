@@ -12,6 +12,9 @@
 #   public *;
 #}
 
+-keep class androidx.media.session.MediaButtonReceiver { *; }
+
+
 # Uncomment this to preserve the line number information for
 # debugging stack traces.
 #-keepattributes SourceFile,LineNumberTable

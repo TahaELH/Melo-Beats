@@ -3,10 +3,12 @@ package com.example.melobeats;
 import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.media.MediaMetadataRetriever;
@@ -19,6 +21,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.PowerManager;
 import android.provider.Settings;
+import android.speech.RecognizerIntent;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -29,6 +32,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.activity.result.ActivityResult;
@@ -66,11 +70,19 @@ public class MainActivity extends AppCompatActivity {
 
     private PowerManager.WakeLock wakeLock;
 
+    ProgressBar progressBar;
+
     private MediaPlayer mediaPlayer = MyMediaPlayer.getInstance();
 
     LinearLayout loadingIndicator;
 
     private static final int NOTIFICATION_ID = 1;
+
+
+    // Inside your activity or service
+    private static final int SPEECH_REQUEST_CODE = 123;
+
+    private static final int MY_PERMISSIONS_REQUEST_RECORD_AUDIO = 123;
 
 
     private void openSystemNotificationSettings() {
@@ -114,6 +126,7 @@ public class MainActivity extends AppCompatActivity {
         }
         show = findViewById(R.id.tracksearch);
         loadingIndicator = findViewById(R.id.loadingIndicator);
+
 
 
 
@@ -181,13 +194,33 @@ public class MainActivity extends AppCompatActivity {
             dialog.getWindow().setStatusBarColor(Color.BLACK);
         }
         EditText searchEditText = dialog.findViewById(R.id.searchEditText);
+
+        ImageButton speakVocal = dialog.findViewById(R.id.speakVocal);
+
         recyclerViewS = dialog.findViewById(R.id.recycler_view_search);
+        progressBar = dialog.findViewById(R.id.progressBar);
+
+        speakVocal.setOnClickListener(view -> {
+                    PackageManager pm = getPackageManager();
+        startSpeechRecognition();
+        List<ResolveInfo> activities = pm.queryIntentActivities(new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH), 0);
+
+        if (activities.size() != 0) {
+            // Speech recognition is available, proceed with implementation
+        } else {
+            // Speech recognition not available on this device
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, MY_PERMISSIONS_REQUEST_RECORD_AUDIO);
+        }
+        });
+
         LinearLayout FSearch = dialog.findViewById(R.id.search__song);
         LinearLayout NSearch = dialog.findViewById(R.id.no__song);
         if (songsList.size() != 0) {
             LinearLayoutManager layoutManager = new LinearLayoutManager(getApplicationContext());
             recyclerViewS.setLayoutManager(layoutManager);
-            AudioFileAdapterSearch adapterS = new AudioFileAdapterSearch(songsList, getApplicationContext(), searchEditText, FSearch, NSearch, recyclerViewS);
+            AudioFileAdapterSearch adapterS = new AudioFileAdapterSearch(songsList, getApplicationContext(), searchEditText, FSearch, NSearch, recyclerViewS, progressBar);
             recyclerViewS.setAdapter(adapterS);
         }
 
@@ -348,6 +381,30 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+    private void startSpeechRecognition() {
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Search for something...");
+        startActivityForResult(intent, SPEECH_REQUEST_CODE);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == SPEECH_REQUEST_CODE && resultCode == RESULT_OK) {
+            ArrayList<String> matches = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+
+            for (String match : matches) {
+                EditText searchEditText = dialog.findViewById(R.id.searchEditText);
+                searchEditText.setText(match.toLowerCase());
+            }
+        }
+    }
+
+
+
     private boolean checkPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             return Environment.isExternalStorageManager();

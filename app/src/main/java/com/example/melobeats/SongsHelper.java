@@ -20,27 +20,12 @@ public class SongsHelper {
                 MediaStore.Audio.Media._ID,
         };
 
-        String[] folderNames = {"snaptube", "Music", "Download"};
-        StringBuilder selectionBuilder = new StringBuilder();
-        selectionBuilder.append(MediaStore.Audio.Media.IS_MUSIC).append(" != 0 AND (");
-        for (int i = 0; i < folderNames.length; i++) {
-            if (i > 0) {
-                selectionBuilder.append(" OR ");
-            }
-            selectionBuilder.append(MediaStore.Audio.Media.DATA)
-                    .append(" LIKE '%").append(folderNames[i]).append("%'");
-        }
-        selectionBuilder.append(")");
-
-        String selection = selectionBuilder.toString();
-        String[] selectionArgs = null;
-
         ContentResolver contentResolver = context.getContentResolver();
         Cursor cursor = contentResolver.query(
                 MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
                 projection,
-                selection,
-                selectionArgs,
+                null,
+                null,
                 MediaStore.Audio.Media.DATE_MODIFIED + " DESC"
         );
 

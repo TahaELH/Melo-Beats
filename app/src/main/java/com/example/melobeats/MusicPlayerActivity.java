@@ -8,11 +8,16 @@ import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.support.v4.media.session.MediaSessionCompat;
+import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -35,7 +40,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 public class MusicPlayerActivity extends AppCompatActivity {
@@ -44,9 +48,9 @@ public class MusicPlayerActivity extends AppCompatActivity {
     private static final int SEEK_FORWARD_MILLIS = 5000;
 
     // UI elements
-    private TextView titleTextView, currentTimeTextView, totalTimeTextView, artistTextView, albumTextView;
+    private TextView titleTextView, currentTimeTextView, totalTimeTextView, artistTextView, albumTextView, LyricsButtonText;
     private SeekBar seekBar;
-    private ImageButton pausePlayButton, previousButton, nextButton, repeatButton, shuffleButton, returnButton, imageConvertButton, likeButton;
+    private ImageButton pausePlayButton, previousButton, nextButton, repeatButton, shuffleButton, returnButton, likeButton;
     private LinearLayout primaryColorLayout;
     private ImageView albumArtImageView, detailsTrackImageView;
 
@@ -63,15 +67,25 @@ public class MusicPlayerActivity extends AppCompatActivity {
 
     private int sizeList;
 
+    private BroadcastReceiver playPauseReceiver;
     private BroadcastReceiver playNextReceiver;
     private BroadcastReceiver playPreviousReceiver;
+
+
+    int currentMediaIndex = 0;
 
 
     ArrayList<AudioModel> songsList;
 
     ArrayList<AudioModel> retrievedAlbumList;
 
-    private MediaPlayer mediaPlayer = MyMediaPlayer.getInstance();
+    private MediaPlayer mediaPlayer;
+
+    private MediaSessionCompat mediaSession;
+    private MusicPlayerSessionCallback mediaSessionCallback;
+
+    private TextView lyricsTextView;
+
 
     @SuppressLint({"MissingInflatedId", "ResourceType"})
     @Override
@@ -83,20 +97,17 @@ public class MusicPlayerActivity extends AppCompatActivity {
                 WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
         );
 
-
-        File albumFile = new File(getBaseContext().getFilesDir(), "sonList.txt");
-        retrievedAlbumList = null;
-        try (FileInputStream fis = new FileInputStream(albumFile);
-             ObjectInputStream ois = new ObjectInputStream(fis)) {
-            retrievedAlbumList = (ArrayList<AudioModel>) ois.readObject();
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
+        sizeList = getIntent().getIntExtra("SIZE", 0);
 
 
 
 
-        isRepeatEnabled = mediaPlayer.isLooping();
+        playPauseReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                pausePlay();
+            }
+        };
 
         playNextReceiver = new BroadcastReceiver() {
             @Override
@@ -112,9 +123,11 @@ public class MusicPlayerActivity extends AppCompatActivity {
             }
         };
 
+        IntentFilter playPauseFilter = new IntentFilter("PLAY_PAUSE");
         IntentFilter nextFilter = new IntentFilter("PLAY_NEXT");
         IntentFilter previousFilter = new IntentFilter("PLAY_PREVIOUS");
 
+        registerReceiver(playPauseReceiver, playPauseFilter);
         registerReceiver(playNextReceiver, nextFilter);
         registerReceiver(playPreviousReceiver, previousFilter);
 
@@ -122,19 +135,15 @@ public class MusicPlayerActivity extends AppCompatActivity {
         setContentView(R.layout.activity_music_player);
 
         initializeUI(); // Ensure that UI elements are initialized first
-        setListeners();
+        mediaSession = new MediaSessionCompat(this, "MusicPlayerSession");
         setResourcesWithMusic(); // Now you can safely use UI elements
+        setListeners();
         updateUI();
 
         runOnUiThread(() -> {
             updateSeekBarAndTime();
             new Handler().postDelayed(() -> updateUI(), DELAY_MILLIS);
         });
-
-        sizeList = getIntent().getIntExtra("SIZE", 0);
-
-
-
     }
 
 
@@ -155,12 +164,20 @@ public class MusicPlayerActivity extends AppCompatActivity {
         shuffleButton = findViewById(R.id.aleatoireImageButton);
         returnButton = findViewById(R.id.submit);
         albumArtImageView = findViewById(R.id.imageView);
-        imageConvertButton = findViewById(R.id.imageConvert);
         primaryColorLayout = findViewById(R.id.changeprimarycolor);
         likeButton = findViewById(R.id.likeCurrentTrack);
 
-        // Get the song list from the intent
+        // Initialize lyrics TextView
+        lyricsTextView = findViewById(R.id.lyricsTextView);
+
+
+        LyricsButtonText = findViewById(R.id.LyricsButtonText);
+
+
     }
+
+
+
 
     private void setListeners() {
         // Set listeners for UI elements
@@ -169,17 +186,19 @@ public class MusicPlayerActivity extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (mediaPlayer != null && fromUser) {
                     mediaPlayer.seekTo(progress);
+
                 }
             }
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-                // Do nothing
+                mediaPlayer.pause();
             }
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                // Do nothing
+                mediaPlayer.start();
+                updateNotification();
             }
         });
 
@@ -188,16 +207,55 @@ public class MusicPlayerActivity extends AppCompatActivity {
         nextButton.setOnClickListener(v -> playNextSong());
         nextButton.setOnFocusChangeListener((View v, boolean hasFocus) -> addSeconds());
         previousButton.setOnClickListener(v -> playPreviousSong());
-        repeatButton.setOnClickListener(v -> toggleRepeat());
-        shuffleButton.setOnClickListener(v -> toggleRandom());
+        repeatButton.setOnClickListener(v -> {
+            toggleRepeat(repeatButton, isRepeatEnabled);
+            isRepeatEnabled = !isRepeatEnabled;
+        });
+        shuffleButton.setOnClickListener(v -> {
+            isRandomEnabled = !isRandomEnabled;
+            toggleRandom(shuffleButton, isRandomEnabled);
+        });
+
         returnButton.setOnClickListener(view -> onBackPressed());
-        imageConvertButton.setOnClickListener(view -> changeAlbumArt());
         detailsTrackImageView.setOnClickListener(view -> showDetailsBottomSheet());
+        LyricsButtonText.setOnClickListener(view -> showDetailsBottomSheetLyrics());
         likeButton.setOnClickListener(view -> addRemoveLikeSong());
     }
 
+    public void toggleRepeat(ImageButton repeatButton, boolean isRepeatEnabled) {
+        if (isRepeatEnabled) {
+            mediaPlayer.setLooping(false); // Toggle repeat on
+            repeatButton.setImageResource(R.drawable.repeate_all);
+        } else {
+            mediaPlayer.setLooping(true); // Toggle repeat off
+            repeatButton.setImageResource(R.drawable.repeate_one);
+        }
+        updateNotification();
+    }
+
+
+    public void toggleRandom(ImageButton shuffleButton, boolean isRandomEnable) {
+
+        if (isRandomEnable) {
+            shuffleButton.setImageResource(R.drawable.shuffle_true);
+        } else {
+            shuffleButton.setImageResource(R.drawable.shuffle);
+        }
+        Log.e("NOTIFICATION", "" + isRandomEnable);
+        updateNotification();
+    }
+
     private void setResourcesWithMusic() {
-//        (ArrayList<AudioModel>) getIntent().getSerializableExtra("LIST")
+        File albumFile = new File(getBaseContext().getFilesDir(), "sonList.txt");
+        retrievedAlbumList = null;
+        try (FileInputStream fis = new FileInputStream(albumFile);
+             ObjectInputStream ois = new ObjectInputStream(fis)) {
+            retrievedAlbumList = (ArrayList<AudioModel>) ois.readObject();
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        currentMediaIndex = 0;
+        File file = new File(getBaseContext().getFilesDir(), "likeSongs.txt");
         songsList = null;
         if (retrievedAlbumList != null){
             songsList = retrievedAlbumList;
@@ -210,15 +268,22 @@ public class MusicPlayerActivity extends AppCompatActivity {
             MyMediaPlayer.currentIndex = songsList.size() - 1;
             currentSong = songsList.get(MyMediaPlayer.currentIndex);
         }
+        mediaPlayer = MyMediaPlayer.getInstance();
+        isRepeatEnabled = mediaPlayer.isLooping();
 
         updateNotification();
 
         setContent(currentSong);
 
-        if(isSongLiked(currentSong.getID())){
-            likeButton.setImageResource(R.drawable.heartliked);
+
+        mediaSessionCallback = new MusicPlayerSessionCallback(mediaSession, file);
+        mediaSession.setCallback(mediaSessionCallback);
+        mediaSession.setActive(true);
+
+        if(mediaSessionCallback.isCurrentSongFavorite(currentSong.getID())){
+            likeButton.setImageResource(R.drawable.favorite_icon_fill);
         }else{
-            likeButton.setImageResource(R.drawable.heart);
+            likeButton.setImageResource(R.drawable.favorite_icon);
         }
 
         if(mediaPlayer.isPlaying() && mediaPlayer.getCurrentPosition() != 0){
@@ -242,8 +307,8 @@ public class MusicPlayerActivity extends AppCompatActivity {
 
     }
 
-    void setContent(AudioModel crtsong){
-        if(crtsong != null){
+    void setContent(AudioModel crtsong) {
+        if (crtsong != null) {
             titleTextView.setText(crtsong.getTitle());
             albumTextView.setText(crtsong.getAlbum());
             artistTextView.setText(crtsong.getArtist());
@@ -266,16 +331,26 @@ public class MusicPlayerActivity extends AppCompatActivity {
                             if (palette != null && palette.getDominantSwatch() != null) {
                                 int color = palette.getDominantSwatch().getRgb();
                                 int darkerColor = darkenColor(color, 0.5f);
-                                primaryColorLayout.setBackgroundColor(darkerColor);
+
+                                Drawable backgroundDrawable = primaryColorLayout.getBackground();
+                                GradientDrawable gradientDrawable;
+
+                                if (backgroundDrawable instanceof GradientDrawable) {
+                                    gradientDrawable = (GradientDrawable) backgroundDrawable;
+                                } else {
+                                    gradientDrawable = new GradientDrawable();
+                                    gradientDrawable.setColor(((ColorDrawable) backgroundDrawable).getColor());
+                                }
+
+                                gradientDrawable.setColors(new int[]{darkerColor, Color.parseColor("#80000000")});
+                                primaryColorLayout.setBackground(gradientDrawable);
                                 primaryColor = darkerColor;
                             }
                         }
                     });
 
-                    imageConvertButton.setVisibility(View.GONE);
                 } else {
                     albumArtImageView.setImageResource(R.drawable.logo1);
-                    imageConvertButton.setVisibility(View.VISIBLE);
                     primaryColorLayout.setBackgroundColor(0xFF000000);
                     primaryColor = 0xFF000000;
                 }
@@ -285,6 +360,7 @@ public class MusicPlayerActivity extends AppCompatActivity {
         }
     }
 
+
     private void updateUI() {
         runOnUiThread(() -> {
             if (mediaPlayer != null) {
@@ -292,9 +368,9 @@ public class MusicPlayerActivity extends AppCompatActivity {
                 currentTimeTextView.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
 
                 if (mediaPlayer.isPlaying()) {
-                    pausePlayButton.setImageResource(R.drawable.stop_current);
+                    pausePlayButton.setImageResource(R.drawable.baseline_pause_circle_24);
                 } else {
-                    pausePlayButton.setImageResource(R.drawable.play_current);
+                    pausePlayButton.setImageResource(R.drawable.baseline_play_circle_24);
                 }
             }
             new Handler().postDelayed(() -> updateUI(), DELAY_MILLIS);
@@ -304,12 +380,13 @@ public class MusicPlayerActivity extends AppCompatActivity {
     private void updateSeekBarAndTime() {
         seekBar.setMax(mediaPlayer.getDuration());
         seekBar.setProgress(mediaPlayer.getCurrentPosition());
+//        mediaSessionCallback.onCompletion(mediaPlayer);
         currentTimeTextView.setText(convertToMMSS(String.valueOf(mediaPlayer.getCurrentPosition())));
 
         if (mediaPlayer.isPlaying()) {
-            pausePlayButton.setImageResource(R.drawable.stop_current);
+            pausePlayButton.setImageResource(R.drawable.baseline_pause_circle_24);
         } else {
-            pausePlayButton.setImageResource(R.drawable.play_current);
+            pausePlayButton.setImageResource(R.drawable.baseline_play_circle_24);
         }
 
         new Handler().postDelayed(this::updateSeekBarAndTime, DELAY_MILLIS);
@@ -317,28 +394,34 @@ public class MusicPlayerActivity extends AppCompatActivity {
 
     private void playMusic() {
         mediaPlayer.setOnCompletionListener(mediaPlayer -> {
+            currentMediaIndex +=1;
             if (isRepeatEnabled) {
                 mediaPlayer.seekTo(0);
-                mediaPlayer.start();
-            } else {
-                playNextSong();
+                mediaSessionCallback.onPlay();
+            }else {
+                if (currentMediaIndex > 0){
+                    playNextSong();
+                    currentMediaIndex -=1;
+                }
             }
         });
 
-        mediaPlayer.reset();
         try {
+            mediaPlayer.reset(); // Reset the MediaPlayer to bring it to the Idle state
             mediaPlayer.setDataSource(currentSong.getPath());
             mediaPlayer.prepare();
-            mediaPlayer.start();
+            mediaSessionCallback.onPlay();
             updateRecentSongs();
-
 
             seekBar.setProgress(0);
             seekBar.setMax(mediaPlayer.getDuration());
 
         } catch (IOException e) {
             e.printStackTrace();
+            Log.e("MediaPlayer", "Error setting data source: " + e.getMessage());
+            // You may want to show an error message to the user here
         }
+
 
         if (isRepeatEnabled) {
             mediaPlayer.setLooping(true);
@@ -401,35 +484,10 @@ public class MusicPlayerActivity extends AppCompatActivity {
     }
 
 
-    void playNextSong() {
-        if (MyMediaPlayer.currentIndex == sizeList - 1) {
-            if (isRepeatEnabled) {
-                MyMediaPlayer.currentIndex = 0;
-            } else {
-                return;
-            }
-        }else {
-            if (isRandomEnabled) {
-                Random random = new Random();
-                int randomIndex;
-
-                if (sizeList > 0) {
-                    do {
-                        randomIndex = random.nextInt(sizeList);
-                    } while (randomIndex == MyMediaPlayer.currentIndex);
-                    MyMediaPlayer.currentIndex = randomIndex;
-                } else {
-                    // Handle the case when sizeList is not positive
-                    MyMediaPlayer.currentIndex = random.nextInt(songsList.size() - 1);
-                    // You might want to show a message or take other appropriate action.
-                }
-            } else {
-                MyMediaPlayer.currentIndex += 1;
-            }
-        }
-
+    public void playNextSong() {
+        mediaSessionCallback.onSkip(isRandomEnabled, sizeList);
+        mediaSession = new MediaSessionCompat(this, "MusicPlayerSession");
         setResourcesWithMusic();
-        mediaPlayer.reset();
         playMusic();
     }
 
@@ -443,64 +501,21 @@ public class MusicPlayerActivity extends AppCompatActivity {
         }
 
         mediaPlayer.seekTo(newPosition);
+//        mediaSessionCallback.useUpdateSeekBar();
     }
 
-    void playPreviousSong() {
-        if (MyMediaPlayer.currentIndex == 0) {
-            if (isRepeatEnabled) {
-                MyMediaPlayer.currentIndex = sizeList - 1;
-            } else {
-                return;
-            }
-        } else {
-            MyMediaPlayer.currentIndex -= 1;
-        }
+    public void playPreviousSong() {
+        mediaSessionCallback.onPrevious(sizeList);
+        mediaSession = new MediaSessionCompat(this, "MusicPlayerSession");
         setResourcesWithMusic();
-        mediaPlayer.reset();
         playMusic();
     }
 
-    private void pausePlay() {
-        if (mediaPlayer.isPlaying()) {
-            mediaPlayer.pause();
-        } else {
-            mediaPlayer.start();
-        }
+
+
+    public void pausePlay() {
+        mediaSessionCallback.onPause();
         updateNotification();
-    }
-
-    private void toggleRepeat() {
-        isRepeatEnabled = !isRepeatEnabled;
-
-        if (isRepeatEnabled) {
-            mediaPlayer.setLooping(true);
-            repeatButton.setImageResource(R.drawable.repeate_one);
-        } else {
-            mediaPlayer.setLooping(false);
-            repeatButton.setImageResource(R.drawable.repeate_all);
-        }
-
-        if (isRandomEnabled && sizeList > 0) {
-            shuffleButton.setImageResource(R.drawable.shuffle_true);
-            Random random = new Random();
-            int randomIndex;
-            do {
-                randomIndex = random.nextInt(sizeList );
-            } while (randomIndex == MyMediaPlayer.currentIndex);
-            MyMediaPlayer.currentIndex = randomIndex;
-        } else {
-            shuffleButton.setImageResource(R.drawable.shuffle);
-        }
-    }
-
-    private void toggleRandom() {
-        isRandomEnabled = !isRandomEnabled;
-
-        if (isRandomEnabled) {
-            shuffleButton.setImageResource(R.drawable.shuffle_true);
-        } else {
-            shuffleButton.setImageResource(R.drawable.shuffle);
-        }
     }
 
     private int darkenColor(int color, float darknessLevel) {
@@ -518,74 +533,31 @@ public class MusicPlayerActivity extends AppCompatActivity {
 
     private void updateNotification() {
         Intent serviceIntent = new Intent(MusicPlayerActivity.this, PlaybackService.class);
+        serviceIntent.putExtra("SONG_ID", currentSong.getID());
         serviceIntent.putExtra("SONG_TITLE", currentSong.getTitle());
         serviceIntent.putExtra("SONG_ARTIST", currentSong.getArtist());
         serviceIntent.putExtra("SONG_BACKGROUND", currentSong.getID());
+        serviceIntent.putExtra("SIZE_LIST", sizeList);
+        serviceIntent.putExtra("isRandom", isRandomEnabled);
         ContextCompat.startForegroundService(MusicPlayerActivity.this, serviceIntent);
     }
 
-    private void changeAlbumArt() {
-        imageNumber = (imageNumber % 5) + 1;
-        int drawableId = getResources().getIdentifier("logo" + imageNumber, "drawable", getPackageName());
-        albumArtImageView.setImageResource(drawableId);
-    }
-
     private void addRemoveLikeSong() {
-        File file = new File(getBaseContext().getFilesDir(), "likeSongs.txt");
-
-        // Read the existing liked song IDs from the file
-        ArrayList<String> likedSongIDs = readLikedSongIDs(file);
-
-        // Get the ID of the current song
-        String currentSongID = currentSong.getID();
-
-        // Check if the current song ID is in the liked list
-        if (likedSongIDs.contains(currentSongID)) {
-            // If present, remove it
-            likedSongIDs.remove(currentSongID);
-        } else {
-            // If not present, add it
-            likedSongIDs.add(0, currentSongID);
+        mediaSession.getController().getTransportControls().sendCustomAction("com.example.FAVORITE", createFavoriteActionExtras(currentSong.getID(), currentSong.getTitle()));
+        if(!mediaSessionCallback.isCurrentSongFavorite(currentSong.getID())){
+            likeButton.setImageResource(R.drawable.favorite_icon_fill);
+        }else{
+            likeButton.setImageResource(R.drawable.favorite_icon);
         }
-
-        try (FileOutputStream fos = new FileOutputStream(file);
-             ObjectOutputStream oos = new ObjectOutputStream(fos)) {
-            oos.writeObject(likedSongIDs);
-            if(isSongLiked(currentSong.getID())){
-                likeButton.setImageResource(R.drawable.heartliked);
-            }else{
-                likeButton.setImageResource(R.drawable.heart);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        updateNotification();
     }
-    private boolean isSongLiked(String songID) {
-        File file = new File(getBaseContext().getFilesDir(), "likeSongs.txt");
-
-        // Read the existing liked song IDs from the file
-        ArrayList<String> likedSongIDs = readLikedSongIDs(file);
-
-        // Check if the provided song ID is in the liked list
-        return likedSongIDs.contains(songID);
+    private Bundle createFavoriteActionExtras(String currentSongId, String currentSongName) {
+        Bundle extras = new Bundle();
+        extras.putString("currentSongId", currentSongId);
+        extras.putString("currentSongName", currentSongName);
+        return extras;
     }
 
-    private ArrayList<String> readLikedSongIDs(File file) {
-        ArrayList<String> likedSongIDs = new ArrayList<>();
-
-        // Check if the file exists
-        if (file.exists()) {
-            try (FileInputStream fis = new FileInputStream(file);
-                 ObjectInputStream ois = new ObjectInputStream(fis)) {
-                // Read the existing liked song IDs from the file
-                likedSongIDs = (ArrayList<String>) ois.readObject();
-            } catch (IOException | ClassNotFoundException e) {
-                e.printStackTrace();
-            }
-        }
-
-        return likedSongIDs;
-    }
 
 
     private void showDetailsBottomSheet() {
@@ -595,17 +567,46 @@ public class MusicPlayerActivity extends AppCompatActivity {
         trackNameDetail.setText(currentSong.getTitle());
         detailDialog.show();
     }
+    private void showDetailsBottomSheetLyrics() {
+        // Assuming you have a function to fetch lyrics based on the current media
+        String lyrics = fetchLyricsForCurrentMedia(); // Implement this function
+
+        BottomSheetDialog detailDialog = new BottomSheetDialog(MusicPlayerActivity.this);
+        View bottomSheetView = getLayoutInflater().inflate(R.layout.bottom_dialog_details_track_lyrics, null);
+        TextView lyricsTextView = bottomSheetView.findViewById(R.id.lyricsTextView);
+
+        // Check if lyrics are available and set them
+        if (lyrics != null && !lyrics.isEmpty()) {
+            lyricsTextView.setText(lyrics);
+        } else {
+            lyricsTextView.setText("Lyrics not available");
+        }
+
+        detailDialog.setContentView(bottomSheetView);
+        detailDialog.show();
+    }
+
+    // Function to fetch lyrics based on the current media (replace this with your logic)
+    private String fetchLyricsForCurrentMedia() {
+        // Implement your logic to fetch lyrics for the currently playing media
+        // For example, you might retrieve lyrics from a database or server
+        // Return the lyrics as a string
+        return "These are the lyrics for the current media.";
+    }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
         if (playNextReceiver != null) {
             unregisterReceiver(playNextReceiver);
         }
         if (playPreviousReceiver != null) {
             unregisterReceiver(playPreviousReceiver);
         }
+
+        mediaSession.setCallback(null);
+        mediaSession.setActive(false);
+        mediaSession.release();
     }
-
-
 }

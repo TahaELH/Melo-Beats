@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
@@ -14,6 +16,7 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -36,8 +39,22 @@ public class AudioFileAdapterSearch extends RecyclerView.Adapter<AudioFileAdapte
     private final LinearLayout NSearch;
     private final RecyclerView recyclerViewS;
 
+    private ProgressBar progressBar1;
 
-    public AudioFileAdapterSearch(ArrayList<AudioModel> songsList, Context context, EditText searchEditText, LinearLayout FSearch, LinearLayout NSearch, RecyclerView recyclerViewS) {
+
+
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private final Runnable updateAdapterRunnable = new Runnable() {
+        @Override
+        public void run() {
+            filterSongs(searchEditText.getText().toString().trim());
+            // Hide loading spinner
+            progressBar1.setVisibility(View.GONE);
+            recyclerViewS.setVisibility(View.VISIBLE);
+        }
+    };
+
+    public AudioFileAdapterSearch(ArrayList<AudioModel> songsList, Context context, EditText searchEditText, LinearLayout FSearch, LinearLayout NSearch, RecyclerView recyclerViewS, ProgressBar progressBar) {
         this.songsList = songsList;
         this.filteredSongsList = new ArrayList<>(songsList);
         this.context = context;
@@ -45,8 +62,10 @@ public class AudioFileAdapterSearch extends RecyclerView.Adapter<AudioFileAdapte
         this.FSearch = FSearch;
         this.NSearch = NSearch;
         this.recyclerViewS = recyclerViewS;
+        this.progressBar1 = progressBar;
 
         recyclerViewS.setVisibility(View.GONE);
+
 
         // Add a TextWatcher to filter the songs list when the searchEditText value changes
         searchEditText.addTextChangedListener(new TextWatcher() {
@@ -57,12 +76,17 @@ public class AudioFileAdapterSearch extends RecyclerView.Adapter<AudioFileAdapte
 
             @Override
             public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
-                filterSongs(charSequence.toString());
+                FSearch.setVisibility(View.GONE);
+                recyclerViewS.setVisibility(View.GONE);
+                progressBar1.setVisibility(View.VISIBLE);
+                // Delay the adapter update by 1 seconds
+                handler.removeCallbacks(updateAdapterRunnable);
+                handler.postDelayed(updateAdapterRunnable, 1000);
             }
 
             @Override
             public void afterTextChanged(Editable editable) {
-
+                // No implementation needed
             }
         });
     }
@@ -143,14 +167,18 @@ public class AudioFileAdapterSearch extends RecyclerView.Adapter<AudioFileAdapte
             NSearch.setVisibility(View.GONE);
             FSearch.setVisibility(View.VISIBLE);
         } else {
-            recyclerViewS.setVisibility(View.VISIBLE);
             NSearch.setVisibility(View.GONE);
             FSearch.setVisibility(View.GONE);
             String searchQuery = searchText.toLowerCase(Locale.getDefault());
             for (AudioModel song : songsList) {
-                if (song.getTitle().toLowerCase(Locale.getDefault()).contains(searchQuery) ||
-                        song.getArtist().toLowerCase(Locale.getDefault()).contains(searchQuery)) {
-                    filteredSongsList.add(song);
+                if (song.getArtist() != null && song.getTitle() != null) {
+                    String title = song.getTitle();
+                    String artist = song.getArtist();
+
+                    if (title.toLowerCase(Locale.getDefault()).contains(searchQuery) ||
+                            artist.toLowerCase(Locale.getDefault()).contains(searchQuery)) {
+                        filteredSongsList.add(song);
+                    }
                 }
             }
             if(filteredSongsList.size() == 0){

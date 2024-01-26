@@ -11,8 +11,7 @@
         android:id="@+id/searchTrack"
         android:layout_width="match_parent"
         android:layout_height="35dp"
-        android:layout_marginStart="15dp"
-        android:layout_marginEnd="15dp"
+        android:layout_marginTop="10dp"
         android:background="@color/body_all"
         android:elevation="20dp"
         android:gravity="right"
@@ -22,6 +21,7 @@
 
 
         <ImageView
+            android:layout_marginHorizontal="15dp"
             android:id="@+id/tracksearch"
             android:layout_width="18dp"
             android:layout_height="18dp"
@@ -35,7 +35,6 @@
         android:id="@+id/fragmentContainer"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@+id/currentTrackA"
         />
     <LinearLayout android:layout_width="match_parent"
         android:layout_height="match_parent"

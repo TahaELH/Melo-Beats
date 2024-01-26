@@ -123,10 +123,12 @@ public class AudioFileAdapterIdSongs extends RecyclerView.Adapter<AudioFileAdapt
     private void filterSongs(ArrayList<String> songIds) {
         filteredSongsList.clear();
         for (String songId : songIds) {
-            for (AudioModel song : songsList) {
-                if (songId.equals(song.getID())) {
-                    filteredSongsList.add(song);
-                    break;
+            if(songId != null){
+                for (AudioModel song : songsList) {
+                    if (songId.equals(song.getID())) {
+                        filteredSongsList.add(song);
+                        break;
+                    }
                 }
             }
         }
